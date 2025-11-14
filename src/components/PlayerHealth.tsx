@@ -21,7 +21,7 @@ export const PlayerHealth = ({ player, health, maxHealth, isActive }: PlayerHeal
   }, [health, prevHealth]);
 
   const healthPercentage = (health / maxHealth) * 100;
-  const playerName = player === "player1" ? "Player 1" : "Player 2";
+  const playerName = player === "player1" ? "You" : "Computer";
 
   return (
     <div

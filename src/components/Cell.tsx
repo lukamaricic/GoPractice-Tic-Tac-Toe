@@ -13,6 +13,7 @@ export const Cell = ({ player, onClick, isHighlighted, isLastPlaced, disabled }:
     <button
       onClick={onClick}
       disabled={disabled || player !== null}
+      aria-label={player ? `Cell occupied by ${player}` : "Empty cell"}
       className={cn(
         "w-12 h-12 md:w-14 md:h-14 rounded-lg transition-all duration-200",
         "flex items-center justify-center",
