@@ -10,10 +10,10 @@ interface GameStatusProps {
 
 export const GameStatus = ({ currentPlayer, gameState, onReset }: GameStatusProps) => {
   const getStatusMessage = () => {
-    if (gameState === "player1Wins") return "Player 1 Wins!";
-    if (gameState === "player2Wins") return "Player 2 Wins!";
+    if (gameState === "player1Wins") return "You Win!";
+    if (gameState === "player2Wins") return "Computer Wins!";
     if (gameState === "draw") return "It's a Draw!";
-    return `${currentPlayer === "player1" ? "Player 1" : "Player 2"}'s Turn`;
+    return currentPlayer === "player1" ? "Your Turn" : "Computer's Turn";
   };
 
   const getStatusColor = () => {

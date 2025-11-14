@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Cell } from "./Cell";
 import { PlayerHealth } from "./PlayerHealth";
 import { GameStatus } from "./GameStatus";
@@ -138,8 +138,9 @@ export const GameBoard = () => {
         // Apply damage
         applyDamage(opponent, damage);
         
+        const playerName = currentPlayer === "player1" ? "You" : "Computer";
         toast.success(
-          `${currentPlayer === "player1" ? "Player 1" : "Player 2"} formed ${lines.length} line${lines.length > 1 ? "s" : ""}! Dealt ${damage} damage!`,
+          `${playerName} formed ${lines.length} line${lines.length > 1 ? "s" : ""}! Dealt ${damage} damage!`,
           { duration: 2000 }
         );
         
@@ -150,6 +151,101 @@ export const GameBoard = () => {
       setCurrentPlayer(prev => prev === "player1" ? "player2" : "player1");
     }, 100);
   };
+
+  // AI move evaluation
+  const evaluatePosition = useCallback((testBoard: Board, row: number, col: number, player: Player): number => {
+    if (!player || testBoard[row][col] !== null) return -1000;
+    
+    let score = 0;
+    const directions = [
+      { dr: 0, dc: 1 },
+      { dr: 1, dc: 0 },
+      { dr: 1, dc: 1 },
+      { dr: 1, dc: -1 },
+    ];
+
+    for (const { dr, dc } of directions) {
+      let count = 1;
+      
+      // Count in positive direction
+      let r = row + dr;
+      let c = col + dc;
+      while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && testBoard[r][c] === player) {
+        count++;
+        r += dr;
+        c += dc;
+      }
+      
+      // Count in negative direction
+      r = row - dr;
+      c = col - dc;
+      while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && testBoard[r][c] === player) {
+        count++;
+        r -= dr;
+        c -= dc;
+      }
+      
+      // Score based on line length
+      if (count >= 4) {
+        score += count * 100; // High priority for damage-dealing moves
+      } else if (count === 3) {
+        score += 30; // Good setup for future damage
+      } else if (count === 2) {
+        score += 10; // Potential line building
+      }
+    }
+    
+    // Small bonus for center positions
+    const centerDist = Math.abs(row - 3) + Math.abs(col - 3);
+    score += (7 - centerDist) * 2;
+    
+    return score;
+  }, []);
+
+  const makeAIMove = useCallback(() => {
+    if (currentPlayer !== "player2" || gameState !== "inProgress") return;
+
+    // Delay AI move for better UX
+    setTimeout(() => {
+      let bestScore = -Infinity;
+      let bestMoves: [number, number][] = [];
+
+      // Evaluate all possible moves
+      for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
+          if (board[row][col] === null) {
+            // Check offensive potential (AI's moves)
+            const offensiveScore = evaluatePosition(board, row, col, "player2");
+            
+            // Check defensive need (block Player 1)
+            const defensiveScore = evaluatePosition(board, row, col, "player1") * 0.8;
+            
+            const totalScore = Math.max(offensiveScore, defensiveScore);
+            
+            if (totalScore > bestScore) {
+              bestScore = totalScore;
+              bestMoves = [[row, col]];
+            } else if (totalScore === bestScore) {
+              bestMoves.push([row, col]);
+            }
+          }
+        }
+      }
+
+      // Pick random move from best moves
+      if (bestMoves.length > 0) {
+        const [row, col] = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+        placePiece(row, col);
+      }
+    }, 800); // 800ms delay for AI move
+  }, [currentPlayer, gameState, board, evaluatePosition]);
+
+  // Trigger AI move when it's Player 2's turn
+  useEffect(() => {
+    if (currentPlayer === "player2" && gameState === "inProgress") {
+      makeAIMove();
+    }
+  }, [currentPlayer, gameState, makeAIMove]);
 
   useEffect(() => {
     const state = checkWinCondition();
@@ -171,6 +267,9 @@ export const GameBoard = () => {
     <div className="min-h-screen bg-game-bg flex flex-col items-center justify-center p-4 gap-8">
       <h1 className="text-4xl md:text-5xl font-bold text-foreground">
         Health Tic-Tac-Toe
+        <span className="block text-lg md:text-xl font-normal text-muted-foreground mt-2">
+          You vs Computer
+        </span>
       </h1>
       
       <div className="flex flex-col md:flex-row gap-8 items-start">
