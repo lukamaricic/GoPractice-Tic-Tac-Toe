@@ -26,6 +26,7 @@ export const GameBoard = () => {
   const [gameState, setGameState] = useState<GameState>("inProgress");
   const [highlightedLines, setHighlightedLines] = useState<Set<string>>(new Set());
   const [lastPlacedCell, setLastPlacedCell] = useState<[number, number] | null>(null);
+  const [isProcessingMove, setIsProcessingMove] = useState(false);
 
   const initializeGame = () => {
     setBoard(Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null)));
@@ -35,6 +36,7 @@ export const GameBoard = () => {
     setGameState("inProgress");
     setHighlightedLines(new Set());
     setLastPlacedCell(null);
+    setIsProcessingMove(false);
   };
 
   const detectLines = (row: number, col: number, player: Player): Line[] => {
@@ -111,8 +113,9 @@ export const GameBoard = () => {
   };
 
   const placePiece = (row: number, col: number) => {
-    if (gameState !== "inProgress" || board[row][col] !== null) return;
+    if (gameState !== "inProgress" || board[row][col] !== null || isProcessingMove) return;
 
+    setIsProcessingMove(true);
     const newBoard = board.map(r => [...r]);
     newBoard[row][col] = currentPlayer;
     setBoard(newBoard);
@@ -149,6 +152,7 @@ export const GameBoard = () => {
       }
       
       setCurrentPlayer(prev => prev === "player1" ? "player2" : "player1");
+      setIsProcessingMove(false);
     }, 100);
   };
 
@@ -203,7 +207,7 @@ export const GameBoard = () => {
   }, []);
 
   const makeAIMove = useCallback(() => {
-    if (currentPlayer !== "player2" || gameState !== "inProgress") return;
+    if (currentPlayer !== "player2" || gameState !== "inProgress" || isProcessingMove) return;
 
     // Delay AI move for better UX
     setTimeout(() => {
@@ -238,14 +242,14 @@ export const GameBoard = () => {
         placePiece(row, col);
       }
     }, 800); // 800ms delay for AI move
-  }, [currentPlayer, gameState, board, evaluatePosition]);
+  }, [currentPlayer, gameState, board, evaluatePosition, isProcessingMove]);
 
   // Trigger AI move when it's Player 2's turn
   useEffect(() => {
-    if (currentPlayer === "player2" && gameState === "inProgress") {
+    if (currentPlayer === "player2" && gameState === "inProgress" && !isProcessingMove) {
       makeAIMove();
     }
-  }, [currentPlayer, gameState, makeAIMove]);
+  }, [currentPlayer, gameState, isProcessingMove]);
 
   useEffect(() => {
     const state = checkWinCondition();
@@ -299,7 +303,7 @@ export const GameBoard = () => {
                     isLastPlaced={
                       lastPlacedCell?.[0] === rowIndex && lastPlacedCell?.[1] === colIndex
                     }
-                    disabled={gameState !== "inProgress"}
+                    disabled={gameState !== "inProgress" || currentPlayer !== "player1" || isProcessingMove}
                   />
                 ))
               )}
