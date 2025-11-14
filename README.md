@@ -10,7 +10,7 @@ I built this game as a part of
 
   
 ## What technologies are used for this project?
-This project is built with:
+This project is built with Lovable, using:
 - Vite
 - TypeScript
 - React
